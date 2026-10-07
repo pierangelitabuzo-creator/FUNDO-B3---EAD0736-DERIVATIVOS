@@ -183,7 +183,8 @@ footer b{color:var(--fg-dim)}
 <main id="main"></main>
 
 <footer>
-  <p><b>Como funciona:</b> cada grupo recebeu R$ 1.000.000 em derivativos em BRL na B3 para zerar uma exposição líquida de US$ 100.000 a pagar no fim do semestre. O P&amp;L acumulado soma o ajuste diário de cada contrato, a remuneração do caixa livre em CDI, e a marcação a mercado da dívida em dólar. Para atualizar: suba o CSV de negócios consolidados da B3 no painel acima, confira a prévia e confirme — o navegador baixa um <b>data.json</b> novo, que é só subir no repositório do GitHub (substituindo o antigo) para o dashboard atualizar pra todo mundo.</p>
+  <p><b>Como funciona:</b> cada grupo recebeu R$ 1.000.000 em derivativos em BRL na B3 para zerar uma exposição líquida de US$ 100.000 a pagar no fim do semestre. O P&amp;L acumulado soma o ajuste diário de cada contrato, a remuneração do caixa livre em CDI, e a marcação a mercado da dívida em dólar.</p>
+  <p style="margin-top:8px"><a href="#" id="monitorLink" style="color:var(--fg-faint);font-size:10.5px;text-decoration:underline;cursor:pointer">Área do monitor</a></p>
 </footer>
 
 <script>
@@ -282,6 +283,53 @@ var ACTIVE_CLASS = 'noturno';
 var DBSTATE = { noturno:null, diurno:null }; // loaded from db: {lastClose:{}, cash:{}, history:{}, lastUpdated:null}
 var canWrite = false;
 
+/* ---------- monitor mode ----------
+   Students should only see the terminal itself (ranking, charts, group
+   detail) — the publish/upload/registration panels are for the monitors
+   and the professor. This is NOT real security (it's a static page, so
+   anyone who reads the HTML source can see MONITOR_CODE and the panel
+   markup) — it's just a casual-visibility gate, same spirit as a locked
+   staff room door. The actual protection stays the GitHub token, which
+   only lives in each monitor's own browser.
+*/
+var MONITOR_CODE = 'EAD0736';
+function isMonitorUnlocked(){
+  try{ return localStorage.getItem('b3term_monitor') === '1'; }catch(e){ return false; }
+}
+function setMonitorUnlocked(v){
+  try{
+    if(v) localStorage.setItem('b3term_monitor','1');
+    else localStorage.removeItem('b3term_monitor');
+  }catch(e){}
+}
+function updateMonitorLink(){
+  var a = document.getElementById('monitorLink');
+  if(!a) return;
+  a.textContent = isMonitorUnlocked() ? 'Sair da área do monitor' : 'Área do monitor';
+}
+function wireMonitorLink(){
+  var a = document.getElementById('monitorLink');
+  if(!a) return;
+  updateMonitorLink();
+  a.addEventListener('click', function(ev){
+    ev.preventDefault();
+    if(isMonitorUnlocked()){
+      setMonitorUnlocked(false);
+    } else {
+      var code = window.prompt('Código de acesso do monitor:');
+      if(code===null) return;
+      if(code.trim()===MONITOR_CODE){
+        setMonitorUnlocked(true);
+      } else {
+        window.alert('Código incorreto.');
+        return;
+      }
+    }
+    updateMonitorLink();
+    renderMain();
+  });
+}
+
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 
 function emptyState(cls){
@@ -361,10 +409,11 @@ function computeStats(history){
 }
 
 /* ---------- render ---------- */
+var TAB_ORDER = ['diurno','noturno'];
 function renderTabs(){
   var el = document.getElementById('classTabs');
   el.innerHTML='';
-  Object.keys(CLASSES).forEach(function(k){
+  TAB_ORDER.forEach(function(k){
     var b = document.createElement('button');
     b.className='tab'; b.setAttribute('role','tab');
     b.setAttribute('aria-selected', k===ACTIVE_CLASS ? 'true':'false');
@@ -622,9 +671,8 @@ function renderMain(){
     document.getElementById('main').innerHTML =
       '<div class="panel"><div class="hd"><h2>'+cls.label+'</h2></div>'+
       '<div class="empty-note"><b>Aguardando as estratégias da turma</b>'+
-      'Os grupos do '+cls.label+' ainda não enviaram as posições do desafio. Assim que as estratégias chegarem (ou forem cadastradas no formulário abaixo), esta aba mostra o ranking de P&amp;L, os gráficos de NAV e o detalhamento de cada grupo, igual à aba '+(ACTIVE_CLASS==='diurno'?'Noturno':'Diurno')+'.</div></div>'+
-      renderGithubConfigBox() +
-      renderGroupForm();
+      'Os grupos do '+cls.label+' ainda não enviaram as posições do desafio.'+(isMonitorUnlocked()?' Assim que as estratégias chegarem (ou forem cadastradas no formulário abaixo), esta aba mostra o ranking de P&amp;L, os gráficos de NAV e o detalhamento de cada grupo, igual à aba '+(ACTIVE_CLASS==='diurno'?'Noturno':'Diurno')+'.':'')+'</div></div>'+
+      (isMonitorUnlocked() ? (renderGithubConfigBox() + renderGroupForm()) : '');
     return;
   }
 
@@ -665,9 +713,11 @@ function renderMain(){
   html += '<div class="panel"><div class="hd"><h2 id="detailTitle">Detalhe — '+sel+'</h2><span class="meta">atualiza ao clicar em qualquer grupo acima</span></div>'+
     '<div class="detail" id="detailPanel">'+renderDetail(ACTIVE_CLASS, sel)+'</div></div>';
 
-  html += renderGithubConfigBox();
-  html += renderUploader(ACTIVE_CLASS);
-  html += renderGroupForm();
+  if(isMonitorUnlocked()){
+    html += renderGithubConfigBox();
+    html += renderUploader(ACTIVE_CLASS);
+    html += renderGroupForm();
+  }
 
   document.getElementById('main').innerHTML = html;
 
@@ -1477,6 +1527,7 @@ canWrite = true;
 async function boot(){
   renderTabs();
   renderMain();
+  wireMonitorLink();
   try{
     var gres = await fetch('groups.json', {cache:'no-store'});
     if(gres && gres.ok){
