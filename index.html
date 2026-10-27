@@ -247,9 +247,9 @@ var CLASSES = {
         members: ["David Yang","Mario Jyun Tanaka Teixeira de Camargo","Miguel Guedes Carneiro","Pedro Steter Rodrigues de Lima"],
         positions: [
           {side:'BUY', qty:10, contract:'WDOZ26', type:'WDO', entry:5214.5, rationale:'Hedge cambial da obrigação líquida de US$100.000, vencimento dez/26.'},
-          {side:'BUY', qty:2, contract:'DI1F27', type:'DI1', entry:96481.9, rationale:'Comprado em PU no vértice curto jan/27, aposta em queda de juros.'},
+          {side:'BUY', qty:1, contract:'DI1F27', type:'DI1', entry:96481.9, rationale:'Rebalanceamento 21/10: vendeu 1 de 2 PU comprados, reduzindo à metade a exposição a juros no vértice jan/27.'},
           {side:'BUY', qty:1, contract:'WDOZ26C005250', type:'OPT', entry:149.59, premium:149.59, rationale:'Mini call de dólar strike 5.250, overlay convexo além do hedge principal.'},
-          {side:'BUY', qty:1, contract:'DAPF27', type:'DAP', entry:98160.73, rationale:'Posição satélite em juros reais (DAP), tamanho limitado p/ não concentrar a carteira.'}
+          {side:'SELL', qty:1, contract:'DDIZ26', type:'DDI', entry:98539.51, rationale:'Rebalanceamento 21/10: zerou DAPF27 e abriu DDIZ26 comprado em taxa (= vendido em PU), aposta em alta do cupom cambial dez/26.'}
         ]
       },
       "Grupo 2": {
